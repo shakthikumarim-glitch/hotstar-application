@@ -56,20 +56,20 @@ pipeline{
                 script{
                    withDockerRegistry(credentialsId: 'docker', toolName: 'docker'){   
                        sh "docker build -t hotstar ."
-                       sh "docker tag hotstar sarvjeet908/hotstar:2 "
-                       sh "docker push sarvjeet908/hotstar:2 "
+                       sh "docker tag hotstar 7760472594/hotstar:2 "
+                       sh "docker push 7760472594/hotstar:2 "
                     }
                 }
             }
         }
         stage("TRIVY"){
             steps{
-                sh "trivy image sarvjeet908/hotstar:2 > trivyimage.txt" 
+                sh "trivy image 7760472594/hotstar:2 > trivyimage.txt" 
             }
         }
       /*  stage('Deploy to container'){
             steps{
-                sh 'docker run -d --name hotstar -p 80:80 sarvjeet908/hotstar:2'
+                sh 'docker run -d --name hotstar -p 80:80 7760472594/hotstar:2'
             }
         }
      */
@@ -111,9 +111,9 @@ pipeline{
                     <p>Started by: ${buildUser}</p>
                     <p>Build URL: <a href="${env.BUILD_URL}">${env.BUILD_URL}</a></p>
                 """,
-                to: 'sarvjeet908@gmail.com',
-                from: 'sarvjeet908@gmail.com',
-                replyTo: 'sarvjeet908@gmail.com',
+                to: 'shakthikumari7899@gmail.com',
+                from: 'shakthikumari7899@gmail.com',
+                replyTo: 'shakthikumari7899@ggmail.com',
                 mimeType: 'text/html',
                 attachmentsPattern: 'trivyfs.txt,trivyimage.txt'
             )
