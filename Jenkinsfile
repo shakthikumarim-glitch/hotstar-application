@@ -67,12 +67,15 @@ pipeline{
                 sh "trivy image sarvjeet908/hotstar:2 > trivyimage.txt" 
             }
         }
-      /*  stage('Deploy to container'){
-            steps{
-                sh 'docker run -d --name hotstar -p 80:80 sarvjeet908/hotstar:2'
-            }
-        }
-     */
+
+        /*
+stage('Deploy to container'){
+    steps{
+        sh 'docker run -d --name hotstar -p 80:80 sarvjeet908/hotstar:2'
+    }
+}
+*/
+
        /* ---------- NEW SECTION FOR DIRECT EKS DEPLOYMENT ---------- */
 
         stage('Configure Kubeconfig for EKS') {
@@ -122,4 +125,4 @@ pipeline{
 
     }
 
-}
+
