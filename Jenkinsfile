@@ -84,7 +84,7 @@ pipeline{
             }
         }
 
-        stage('Deploy to EKS') {
+                stage('Deploy to EKS') {
             steps {
                 sh '''
                     echo "Applying Kubernetes manifests..."
@@ -92,34 +92,31 @@ pipeline{
                 '''
             }
         }
+    }   // ✅ THIS closes stages block
 
-
-    
     post {
-    always {
-        script {
-            def buildStatus = currentBuild.currentResult
-            def buildUser = currentBuild.getBuildCauses('hudson.model.Cause$UserIdCause')[0]?.userId ?: 'Github User'
-            
-            emailext (
-                subject: "Pipeline ${buildStatus}: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-                body: """
-                    <p>This is a Jenkins HOTSTAR CICD pipeline status.</p>
-                    <p>Project: ${env.JOB_NAME}</p>
-                    <p>Build Number: ${env.BUILD_NUMBER}</p>
-                    <p>Build Status: ${buildStatus}</p>
-                    <p>Started by: ${buildUser}</p>
-                    <p>Build URL: <a href="${env.BUILD_URL}">${env.BUILD_URL}</a></p>
-                """,
-                to: 'shakthikumari7899@gmail.com',
-                from: 'shakthikumari7899@gmail.com',
-                replyTo: 'shakthikumari7899@ggmail.com',
-                mimeType: 'text/html',
-                attachmentsPattern: 'trivyfs.txt,trivyimage.txt'
-            )
-           }
-       }
+        always {
+            script {
+                def buildStatus = currentBuild.currentResult
+                def buildUser = currentBuild.getBuildCauses('hudson.model.Cause$UserIdCause')[0]?.userId ?: 'Github User'
 
+                emailext (
+                    subject: "Pipeline ${buildStatus}: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                    body: """
+                        <p>This is a Jenkins HOTSTAR CICD pipeline status.</p>
+                        <p>Project: ${env.JOB_NAME}</p>
+                        <p>Build Number: ${env.BUILD_NUMBER}</p>
+                        <p>Build Status: ${buildStatus}</p>
+                        <p>Started by: ${buildUser}</p>
+                        <p>Build URL: <a href="${env.BUILD_URL}">${env.BUILD_URL}</a></p>
+                    """,
+                    to: 'shakthikumari7899@gmail.com',
+                    from: 'shakthikumari7899@gmail.com',
+                    replyTo: 'shakthikumari7899@ggmail.com',
+                    mimeType: 'text/html',
+                    attachmentsPattern: 'trivyfs.txt,trivyimage.txt'
+                )
+            }
+        }
     }
-
-}
+}   // ✅ closes pipeline
