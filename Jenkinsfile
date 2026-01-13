@@ -1,122 +1,116 @@
-pipeline{
+pipeline {
     agent any
-    tools{
+
+    tools {
         jdk 'jdk'
         nodejs 'node'
     }
+
     environment {
-        SCANNER_HOME=tool 'sonar-scanner'
-        AWS_DEFAULT_REGION='ap-south-1'
-        CLUSTER_NAME='poc-eks-cluster-1'
+        SCANNER_HOME = tool 'sonar-scanner'
+        AWS_DEFAULT_REGION = 'ap-south-1'
+        CLUSTER_NAME = 'poc-eks-cluster-1'
     }
+
     stages {
-        stage('clean workspace'){
-            steps{
+
+        stage('Clean Workspace') {
+            steps {
                 cleanWs()
             }
         }
-        stage('Checkout from Git'){
-            steps{
-               checkout scm
+
+        stage('Checkout from Git') {
+            steps {
+                checkout scm
             }
         }
-        stage("Sonarqube Analysis "){
-            steps{
+
+        stage('SonarQube Analysis') {
+            steps {
                 withSonarQubeEnv('SonarQube') {
-                    sh ''' $SCANNER_HOME/bin/sonar-scanner -Dsonar.projectName=Hotstar \
-                    -Dsonar.projectKey=Hotstar '''
+                    sh """
+                    ${SCANNER_HOME}/bin/sonar-scanner \
+                    -Dsonar.projectName=Hotstar \
+                    -Dsonar.projectKey=Hotstar
+                    """
                 }
             }
         }
-        stage("quality gate"){
-           steps {
-                script {
-                    waitForQualityGate abortPipeline: false, credentialsId: 'sonar-token' 
-                }
-            } 
+
+        stage('Quality Gate') {
+            steps {
+                waitForQualityGate abortPipeline: false, credentialsId: 'sonar-token'
+            }
         }
+
         stage('Install Dependencies') {
             steps {
-                sh "npm install"
+                sh 'npm install'
             }
         }
-        stage('OWASP FS SCAN') {
+
+        stage('OWASP Dependency Scan') {
             steps {
-                dependencyCheck additionalArguments: '--scan ./ --disableYarnAudit --disableNodeAudit --nvdApiKey cec38a74-d5d5-4857-8180-7a0c5f36e6c8   ', odcInstallation: 'DC'
+                dependencyCheck additionalArguments: '''
+                    --scan ./ 
+                    --disableYarnAudit 
+                    --disableNodeAudit 
+                    --nvdApiKey cec38a74-d5d5-4857-8180-7a0c5f36e6c8
+                ''', odcInstallation: 'DC'
+
                 dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
-           }
-        }
-           stage("TRIVY IMAGE SCAN") {
-            steps {
-                sh "trivy image 7760472594/hotstar:2 > trivyimage.txt"
             }
         }
-        stage("Docker Build & Push"){
-            steps{
-                script{
-                   withDockerRegistry(credentialsId: 'docker', toolName: 'docker'){   
-                       sh "docker build -t hotstar ."
-                       sh "docker tag hotstar 7760472594/hotstar:2 "
-                       sh "docker push 7760472594/hotstar:2 "
+
+        stage('Docker Build & Push') {
+            steps {
+                script {
+                    withDockerRegistry(credentialsId: 'docker', toolName: 'docker') {
+                        sh '''
+                        docker build -t 7760472594/hotstar:2 .
+                        docker push 7760472594/hotstar:2
+                        '''
                     }
                 }
             }
         }
-        stage("TRIVY"){
-            steps{
-                sh "trivy image 7760472594/hotstar:2 > trivyimage.txt" 
+
+        stage('Trivy Image Scan') {
+            steps {
+                sh 'trivy image 7760472594/hotstar:2 > trivyimage.txt'
             }
         }
-      /*  stage('Deploy to container'){
-            steps{
-                sh 'docker run -d --name hotstar -p 80:80 7760472594/hotstar:2'
-            }
-        }
-     */
-       /* ---------- NEW SECTION FOR DIRECT EKS DEPLOYMENT ---------- */
 
         stage('Configure Kubeconfig for EKS') {
             steps {
                 sh '''
-                    aws eks --region $AWS_DEFAULT_REGION update-kubeconfig --name $CLUSTER_NAME
-                    kubectl get nodes
+                aws eks --region $AWS_DEFAULT_REGION update-kubeconfig --name $CLUSTER_NAME
+                kubectl get nodes
                 '''
             }
         }
 
-                stage('Deploy to EKS') {
+        stage('Deploy to EKS') {
             steps {
-                sh '''
-                    echo "Applying Kubernetes manifests..."
-                    kubectl apply -f K8S/
-                '''
-            }
-        }
-    }   // ✅ THIS closes stages block
-
-    post {
-        always {
-            script {
-                def buildStatus = currentBuild.currentResult
-                def buildUser = currentBuild.getBuildCauses('hudson.model.Cause$UserIdCause')[0]?.userId ?: 'Github User'
-
-                emailext (
-                    subject: "Pipeline ${buildStatus}: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-                    body: """
-                        <p>This is a Jenkins HOTSTAR CICD pipeline status.</p>
-                        <p>Project: ${env.JOB_NAME}</p>
-                        <p>Build Number: ${env.BUILD_NUMBER}</p>
-                        <p>Build Status: ${buildStatus}</p>
-                        <p>Started by: ${buildUser}</p>
-                        <p>Build URL: <a href="${env.BUILD_URL}">${env.BUILD_URL}</a></p>
-                    """,
-                    to: 'shakthikumari7899@gmail.com',
-                    from: 'shakthikumari7899@gmail.com',
-                    replyTo: 'shakthikumari7899@ggmail.com',
-                    mimeType: 'text/html',
-                    attachmentsPattern: 'trivyfs.txt,trivyimage.txt'
-                )
+                sh 'kubectl apply -f K8S/'
             }
         }
     }
-}   // ✅ closes pipeline
+
+    post {
+        always {
+            emailext (
+                subject: "Pipeline ${currentBuild.currentResult}: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                body: """
+                <p>HOTSTAR CI/CD Pipeline Status</p>
+                <p>Status: ${currentBuild.currentResult}</p>
+                <p>Build URL: <a href="${env.BUILD_URL}">${env.BUILD_URL}</a></p>
+                """,
+                to: 'shakthikumari7899@gmail.com',
+                mimeType: 'text/html',
+                attachmentsPattern: 'trivyimage.txt'
+            )
+        }
+    }
+}
