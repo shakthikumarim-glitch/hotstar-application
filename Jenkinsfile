@@ -46,9 +46,9 @@ pipeline{
                 dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
            }
         }
-            stage('TRIVY FS SCAN') {
+           stage("TRIVY IMAGE SCAN") {
             steps {
-                sh "trivy fs . > trivyfs.txt"
+                sh "trivy image 7760472594/hotstar:2 > trivyimage.txt"
             }
         }
         stage("Docker Build & Push"){
